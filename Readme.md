@@ -1,7 +1,7 @@
 ##
 由于最近一直在关心 parser 的机制, 所以研究了几个库的源码, 
-  * the supertiny compiler
-  * crazyfork/thirft-parser
+  * https://github.com/CrazyFork/the-super-tiny-compiler
+  * https://github.com/CrazyFork/thrift-parser
   * 还有这个
   * 一会儿我将看 scala 写的 json parser.
   
