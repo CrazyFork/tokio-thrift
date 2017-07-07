@@ -3,6 +3,11 @@
 use std::char;
 use std::io::{Read, Write};
 
+/**
+这个parser的解析的thrift格式好像已经不对了, 有一些格式有问题，我在想是不是由于这个库没有维护导致的
+*/
+
+// defines various types
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Ty {
     String,
@@ -14,7 +19,7 @@ pub enum Ty {
     I32,
     I64,
     Double,
-    List(Box<Ty>),
+    List(Box<Ty>), // :bm, recursive type
     Set(Box<Ty>),
     Map(Box<Ty>, Box<Ty>),
     Option(Box<Ty>),
@@ -24,7 +29,7 @@ pub enum Ty {
 
 impl From<String> for Ty {
     fn from(val: String) -> Ty {
-        match &*val {
+        match &*val { // todo: what is the syntax?
             "string" => Ty::String,
             "void" => Ty::Void,
             "byte" => Ty::Byte,
@@ -93,6 +98,7 @@ impl Ty {
     }
 }
 
+// defines various ast node
 #[derive(Debug, PartialEq, Eq)]
 pub struct Include {
     pub path: String
@@ -100,20 +106,20 @@ pub struct Include {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Service {
-    pub ident: String,
+    pub ident: String, // :bm, ident namely identifier
     pub methods: Vec<ServiceMethod>
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ServiceMethod {
-    pub ident: String,
-    pub ty: Ty,
-    pub attr: FieldAttribute,
+pub struct ServiceMethod { // :todo, no throws ?
+    pub ident: String, // method name
+    pub ty: Ty, // return type
+    pub attr: FieldAttribute, // one way, optional, required
     pub args: Vec<StructField>
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Enum {
+pub struct Enum { //:todo, no default value?
     pub ident: String,
     pub variants: Vec<String>
 }
@@ -133,14 +139,14 @@ pub enum FieldAttribute {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct StructField {
-    pub seq: i16,
+    pub seq: i16, // id
     pub attr: FieldAttribute,
-    pub ty: Ty,
-    pub ident: String
+    pub ty: Ty, // type
+    pub ident: String // variable name
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Typedef(pub Ty, pub String);
+pub struct Typedef(pub Ty, pub String); // Tuple structs, 
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Namespace {
@@ -148,6 +154,7 @@ pub struct Namespace {
     pub module: String
 }
 
+// all the valid key words
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum Keyword {
     Struct,
@@ -164,8 +171,10 @@ pub enum Keyword {
     Const,
 }
 
+// Token::String("abc") == Token::String("abc")
+// all the valid elements in the documents, used in later processing
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub enum Token {
+pub enum Token { 
     Eq,
     Colon,
     SingleQuote,
@@ -191,6 +200,7 @@ pub enum Token {
     B,
 }
 
+// all the errors this parser emmit
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     Expected,
@@ -204,10 +214,10 @@ pub enum Error {
 }
 
 pub struct Parser<'a> {
-    buffer: &'a str,
-    pos: usize,
-    pub token: Token,
-    last_token_eof: bool
+    buffer: &'a str, // src string
+    pos: usize, // parser position
+    pub token: Token, // Token, to be processed
+    last_token_eof: bool // token 是否已经到达了结尾
 }
 
 impl<'a> Parser<'a> {
@@ -521,6 +531,7 @@ impl<'a> Parser<'a> {
         self.buffer[self.pos ..].starts_with(s)
     }
 
+    // whether this parser has reach the string's limit
     fn eof(&self) -> bool {
         self.pos >= self.buffer.len()
     }
@@ -528,11 +539,12 @@ impl<'a> Parser<'a> {
     fn consume_char(&mut self) -> char {
         let mut iter = self.buffer[self.pos..].char_indices();
         let (_, cur_char) = iter.next().unwrap();
-        let (next_pos, _) = iter.next().unwrap_or((1, ' '));
+        let (next_pos, _) = iter.next().unwrap_or((1, ' ')); // this fn advance position by 1 even though string end is reached
         self.pos += next_pos;
         return cur_char;
     }
 
+    // inner method used by bump method
     fn next_token(&mut self) -> Token {
         if self.eof() {
             return Token::Eof;
@@ -546,7 +558,7 @@ impl<'a> Parser<'a> {
             ';' => Token::Semi,
             ',' => Token::Comma,
             '"' => {
-                let val = self.consume_while(|c| c != '"' || c != '\"');
+                let val = self.consume_while(|c| c != '"' || c != '\"'); // redundant?
                 self.consume_char();
                 Token::QuotedString(val)
             },
@@ -565,11 +577,11 @@ impl<'a> Parser<'a> {
 
                 val = format!("{}{}", ch, val);
 
-                Token::Number(val.parse().unwrap())
+                Token::Number(val.parse().unwrap()) // :bm, type is inferred
             },
             '/' | '#' => {
                 if self.next_char() == '/' || ch == '#' {
-                    self.consume_while(|c| c != '\n' && c != '\r');
+                    self.consume_while(|c| c != '\n' && c != '\r'); //:todo, next char is \r or \n
                     return Token::Comment
                 } else if self.next_char() == '*' {
                     self.consume_char();
@@ -723,7 +735,7 @@ mod tests {
     #[should_panic]
     fn whitespace_token() {
         let mut parser = Parser::new(" ");
-        assert_eq!(parser.next_token(), Token::Whitespace);
+        assert_eq!(parser.next_token(), Token::Whitespace); // Eof != whitespace
     }
 
     #[test]
@@ -822,7 +834,7 @@ mod tests {
     fn parse_namesp_ace() {
         let mut p = Parser::new("namespace rust foobar");
         let ns = p.parse_namespace().unwrap();
-        assert_eq!(&*ns.lang, "rust");
+        assert_eq!(&*ns.lang, "rust"); // :bm, is this syntax really necessary `&*`
         assert_eq!(&*ns.module, "foobar");
     }
 

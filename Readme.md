@@ -1,3 +1,22 @@
+##
+由于最近一直在关心 parser 的机制, 所以研究了几个库的源码, 
+  * the supertiny compiler
+  * crazyfork/thirft-parser
+  * 还有这个
+  * 一会儿我将看 scala 写的 json parser.
+  
+
+* /thrust-parser
+  * 这个是我主要关注的模块, 实现的parser还是挺优雅的就代码上来说。首先这个parser用next_token方法隔离了没有用的字符串。只是一个个合法的token，然后再根据 bump 方法去更新 token 的值
+
+
+
+头都是：
+
+* thrift 的namespace到底是啥意思
+* PartialEq vs Eq,
+
+
 # Thrust [![Build Status](https://travis-ci.org/thehydroimpulse/thrust.svg?branch=master)](https://travis-ci.org/thehydroimpulse/thrust)
 
 **Note:** A work in progress. It's not in a useful state right now.
