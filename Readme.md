@@ -11,7 +11,7 @@
 
 
 
-头都是：
+todos：
 
 * thrift 的namespace到底是啥意思
 * PartialEq vs Eq,
